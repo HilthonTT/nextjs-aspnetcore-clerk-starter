@@ -1,6 +1,21 @@
 @ClerkAPI_HostAddress = http://localhost:5014
 
-GET {{ClerkAPI_HostAddress}}/weatherforecast/
+# Grab a session token from the browser devtools (the __session cookie) or
+# `await getToken()` in the Next.js app, then paste it here.
+@ClerkToken = <paste a Clerk session token>
+
+### Liveness probe — no auth required
+GET {{ClerkAPI_HostAddress}}/health
 Accept: application/json
+
+### Secured sample endpoint
+GET {{ClerkAPI_HostAddress}}/api/WeatherForecast
+Accept: application/json
+Authorization: Bearer {{ClerkToken}}
+
+### The Clerk profile behind the token
+GET {{ClerkAPI_HostAddress}}/api/Users/me
+Accept: application/json
+Authorization: Bearer {{ClerkToken}}
 
 ###

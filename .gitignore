@@ -396,3 +396,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+.idea/
+
+# Local environment files — never commit real keys
+.env
+.env.local
+.env.*.local
+!.env.example

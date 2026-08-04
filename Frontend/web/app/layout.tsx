@@ -7,8 +7,9 @@ import { ClerkProvider } from "@clerk/nextjs";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NextJS FrontEnd",
-  description: "Make API calls",
+  title: "Next.js + ASP.NET Core + Clerk",
+  description:
+    "Starter template: a Next.js app calling a Clerk-secured ASP.NET Core Web API.",
 };
 
 export default function RootLayout({
@@ -17,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider afterSignOutUrl="/">
       <html lang="en">
         <body className={inter.className}>{children}</body>
       </html>

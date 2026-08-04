@@ -1,12 +1,16 @@
+using ClerkAPI.Extensions;
+using ClerkAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Clerk.Net.Client;
-using System.Text.Json;
 
 namespace ClerkAPI.Controllers;
+
+/// <summary>
+/// Sample secured endpoint. Every request must carry a valid Clerk session token.
+/// </summary>
 [ApiController]
-[Route("[controller]")]
 [Authorize]
+[Route("api/[controller]")]
 public class WeatherForecastController : ControllerBase
 {
     private static readonly string[] Summaries =
@@ -15,47 +19,26 @@ public class WeatherForecastController : ControllerBase
     ];
 
     private readonly ILogger<WeatherForecastController> _logger;
-    private readonly ClerkApiClient _client;
 
-    public WeatherForecastController(ILogger<WeatherForecastController> logger, ClerkApiClient client)
+    public WeatherForecastController(ILogger<WeatherForecastController> logger)
     {
         _logger = logger;
-        _client = client;
     }
 
     [HttpGet(Name = "GetWeatherForecast")]
-    public async Task<IEnumerable<WeatherForecast>> Get()
+    [ProducesResponseType<IEnumerable<WeatherForecast>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public ActionResult<IEnumerable<WeatherForecast>> Get()
     {
-        var claims = HttpContext.User.Claims;
-        foreach (var claim in claims)
-        {
-            Console.WriteLine(claim);
-        }
+        _logger.LogInformation("Weather forecast requested by {UserId}", User.GetUserId());
 
-        string userId = claims.FirstOrDefault(x => 
-            x.Type.Contains("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier", 
-                StringComparison.InvariantCultureIgnoreCase))?.Value;
-
-        var users = await _client.Users.GetAsync();
-        var user = users.FirstOrDefault(x => x.Id == userId);
-
-        if (user is not null)
+        var forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
         {
-            var options =  new JsonSerializerOptions() { WriteIndented = true };
-            string jsonifiedUser = JsonSerializer.Serialize(user, options);
-            Console.WriteLine(jsonifiedUser);
-        }
-        else
-        {
-            Console.WriteLine("Null");
-        }
-
-        return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        {
-            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+            Date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(index)),
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-        })
-        .ToArray();
+        });
+
+        return Ok(forecasts);
     }
 }

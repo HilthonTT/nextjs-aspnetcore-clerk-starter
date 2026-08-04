@@ -1,7 +1,9 @@
-﻿using Clerk.Net.DependencyInjection;
+using System.Security.Claims;
+using Clerk.Net.DependencyInjection;
+using ClerkAPI.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
+using Microsoft.OpenApi.Models;
 
 namespace ClerkAPI;
 
@@ -10,39 +12,116 @@ public static class RegisterServices
     public static void ConfigureServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddControllers();
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
+        builder.Services.AddSwagger();
 
-        builder.Services.AddClerkApiClient(config =>
-        {
-            config.SecretKey = builder.Configuration["Clerk:SecretKey"]!;
-        });
+        builder.Services.AddClerkOptions(builder.Configuration);
+        builder.Services.AddClerkAuthentication(builder.Configuration);
+        builder.Services.AddFrontendCors(builder.Configuration);
+    }
 
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(x =>
+    /// <summary>
+    /// Binds and validates the "Clerk" section, then registers Clerk's Backend API client.
+    /// Validation runs at startup, so a missing key fails fast instead of surfacing as a 401 later.
+    /// </summary>
+    private static void AddClerkOptions(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<ClerkOptions>()
+            .Bind(configuration.GetSection(ClerkOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        var clerk = configuration.GetSection(ClerkOptions.SectionName).Get<ClerkOptions>() ?? new ClerkOptions();
+
+        services.AddClerkApiClient(config => config.SecretKey = clerk.SecretKey);
+    }
+
+    /// <summary>
+    /// Validates Clerk session tokens as JWT bearer tokens using Clerk's JWKS endpoint.
+    /// </summary>
+    private static void AddClerkAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        var clerk = configuration.GetSection(ClerkOptions.SectionName).Get<ClerkOptions>() ?? new ClerkOptions();
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
             {
-                // Authority is the URL of your clerk instance
-                x.Authority = builder.Configuration["Clerk:Authority"];
-                x.TokenValidationParameters = new TokenValidationParameters()
+                // The authority is the URL of your Clerk instance; keys are discovered from its JWKS.
+                options.Authority = clerk.Authority;
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    // Disable audience validation as we aren't using it
+                    // Clerk session tokens carry no audience by default.
                     ValidateAudience = false,
                     NameClaimType = ClaimTypes.NameIdentifier
                 };
-                x.Events = new JwtBearerEvents()
+                options.Events = new JwtBearerEvents
                 {
-                    // Additional validation for AZP claim
+                    // Reject tokens minted for a different frontend origin (the "azp" claim).
                     OnTokenValidated = context =>
                     {
                         var azp = context.Principal?.FindFirstValue("azp");
-                        // AuthorizedParty is the base URL of your frontend.
-                        if (string.IsNullOrEmpty(azp) || !azp.Equals(builder.Configuration["Clerk:AuthorizedParty"]))
-                            context.Fail("AZP Claim is invalid or missing");
+
+                        if (string.IsNullOrEmpty(azp) || !azp.Equals(clerk.AuthorizedParty, StringComparison.Ordinal))
+                        {
+                            context.Fail("AZP claim is invalid or missing.");
+                        }
 
                         return Task.CompletedTask;
                     }
                 };
             });
+
+        services.AddAuthorization();
+    }
+
+    private static void AddFrontendCors(this IServiceCollection services, IConfiguration configuration)
+    {
+        var cors = configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
+
+        services.AddCors(options => options.AddPolicy(CorsOptions.PolicyName, policy =>
+        {
+            if (cors.AllowedOrigins.Length == 0)
+            {
+                return;
+            }
+
+            policy.WithOrigins(cors.AllowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }));
+    }
+
+    /// <summary>
+    /// Adds Swagger with an "Authorize" button so you can paste a Clerk token and call secured endpoints.
+    /// </summary>
+    private static void AddSwagger(this IServiceCollection services)
+    {
+        services.AddSwaggerGen(options =>
+        {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "Clerk API",
+                Version = "v1",
+                Description = "ASP.NET Core Web API secured with Clerk session tokens."
+            });
+
+            var scheme = new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Paste a Clerk session token (without the \"Bearer \" prefix).",
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = JwtBearerDefaults.AuthenticationScheme
+                }
+            };
+
+            options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, scheme);
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement { [scheme] = [] });
+        });
     }
 }
