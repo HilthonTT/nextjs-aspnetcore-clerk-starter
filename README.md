@@ -40,6 +40,7 @@ Auth on the .NET side is powered by [Hawxy's Clerk.Net](https://github.com/Hawxy
 │  ├─ global.json                 Pinned SDK band + test runner
 │  ├─ Directory.Build.props       MSBuild settings shared by every project
 │  ├─ Directory.Packages.props    Every NuGet version, in one place
+│  ├─ Dockerfile                  Multi-stage image for the API (build from repo root)
 │  ├─ ClerkAPI/
 │  │  ├─ Controllers/             WeatherForecast (sample data) and Users (/me via Clerk)
 │  │  ├─ Extensions/              ClaimsPrincipal.GetUserId()
@@ -226,6 +227,34 @@ and set `API_URL=https://localhost:7080`. `--use-system-ca` requires Node 22.15+
 4. Mirror the model in `Frontend/web/types/api.ts`.
 5. Call it from a server component with `apiFetch<YourType>("/api/YourController")`, and wrap that
    component in its own `<Suspense fallback={<CardSkeleton />}>` so it streams independently.
+
+## Deploying
+
+The API ships a multi-stage `Backend/Dockerfile` (Alpine, non-root, listening on 8080).
+Build it **from the repository root** — the root `.editorconfig` is part of the build:
+
+```bash
+docker build -t clerkapi -f Backend/Dockerfile .
+docker run --rm -p 8080:8080   -e ASPNETCORE_ENVIRONMENT=Production   -e Clerk__SecretKey="sk_live_..."   -e Clerk__Authority="https://your-instance.clerk.accounts.dev"   -e Clerk__AuthorizedParty="https://your-frontend.example.com"   clerkapi
+```
+
+CI builds the image on every pull request and, on pushes to `main`, publishes it to
+GitHub Container Registry as `ghcr.io/<owner>/<repo>/api`. Anything that can pull an OCI
+image — Cloud Run, Fly.io, Azure Container Apps, Render — can deploy it from there.
+
+Whatever you deploy to, four things change from local development:
+
+| Setting                                     | Why                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| `Clerk__AuthorizedParty`                    | Must be the deployed **frontend** URL, or every request fails the `azp` check. |
+| `Clerk__SecretKey` / `Clerk__Authority`     | Use your Clerk **production** instance, not the `_test_` keys.             |
+| `ASPNETCORE_ENVIRONMENT=Production`         | Enables HTTPS redirection and HSTS, and stops serving `/scalar` and `/openapi`. |
+| `API_URL` (on the frontend host)            | Points at the deployed API. Still server-side only — no `NEXT_PUBLIC_` prefix. |
+
+Point your platform's health probe at `/health`, which is anonymous by design.
+
+`Cors:AllowedOrigins` stays empty unless a browser calls the API directly — the Next.js app
+calls it from the server, where CORS does not apply.
 
 ## Updating dependencies
 

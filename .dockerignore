@@ -1,0 +1,23 @@
+# Keep the build context small and free of anything secret or generated.
+
+.git/
+.github/
+.vs/
+.vscode/
+
+# The frontend is deployed separately; none of it belongs in the API image.
+Frontend/
+
+# .NET build outputs and IDE state.
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+
+# The test project is not part of the runtime image.
+Backend/ClerkAPI.Tests/
+
+# Secrets and local-only settings must come from the platform's environment.
+**/appsettings.Development.json
+**/.env
+**/.env.*
