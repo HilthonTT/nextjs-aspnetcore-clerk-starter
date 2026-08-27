@@ -42,6 +42,18 @@ updates:
       clerk:
         patterns:
           - "@clerk/*"
+    ignore:
+      # eslint-config-next 16 bundles eslint-plugin-react, which still calls the
+      # context.getFilename() API that ESLint 10 removed — linting crashes with
+      # "contextOrFilename.getFilename is not a function". Its declared peer range
+      # (eslint >=9.0.0) is too permissive to catch this, so pin the major here and
+      # lift it once eslint-config-next supports ESLint 10.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # TypeScript majors change type-checking behaviour across the whole app.
+      # Take them deliberately, not on a weekly PR.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
