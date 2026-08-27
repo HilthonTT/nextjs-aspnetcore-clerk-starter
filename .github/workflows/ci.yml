@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+# A new push to a PR cancels the run still in flight for it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   backend:
@@ -14,12 +23,28 @@ jobs:
       run:
         working-directory: Backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: "8.0.x"
-      - run: dotnet restore CsharpAPIClerk.sln
-      - run: dotnet build CsharpAPIClerk.sln --no-restore --configuration Release
+          # Honours Backend/global.json, so CI and local builds use the same SDK band.
+          global-json-file: Backend/global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Backend/Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - run: dotnet restore CsharpAPIClerk.slnx
+
+      - run: dotnet build CsharpAPIClerk.slnx --no-restore --configuration Release
+
+      - run: dotnet test CsharpAPIClerk.slnx --no-build --configuration Release
+
+      - name: Verify formatting matches .editorconfig
+        run: dotnet format CsharpAPIClerk.slnx --verify-no-changes --no-restore
 
   frontend:
     name: Frontend (Next.js)
@@ -33,13 +58,24 @@ jobs:
       CLERK_SECRET_KEY: sk_test_ci
       API_URL: http://localhost:5014
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version-file: Frontend/web/.nvmrc
           cache: npm
           cache-dependency-path: Frontend/web/package-lock.json
+
       - run: npm ci
+
       - run: npm run lint
+
       - run: npm run typecheck
+
       - run: npm run build
+
+      # Informational: a newly published advisory should be visible on the PR without
+      # blocking a build that is otherwise fine.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high --omit=dev
+        continue-on-error: true

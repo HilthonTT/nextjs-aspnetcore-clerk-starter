@@ -1,5 +1,6 @@
 using Clerk.Net.Client;
 using ClerkAPI.Extensions;
+using ClerkAPI.Infrastructure;
 using ClerkAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,17 +13,9 @@ namespace ClerkAPI.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public class UsersController : ControllerBase
+[Produces("application/json")]
+public sealed class UsersController(ILogger<UsersController> logger, ClerkApiClient client) : ControllerBase
 {
-    private readonly ILogger<UsersController> _logger;
-    private readonly ClerkApiClient _client;
-
-    public UsersController(ILogger<UsersController> logger, ClerkApiClient client)
-    {
-        _logger = logger;
-        _client = client;
-    }
-
     /// <summary>
     /// Returns the profile of the user the request's token belongs to.
     /// </summary>
@@ -40,11 +33,11 @@ public class UsersController : ControllerBase
         }
 
         // Fetch this user only — never list every user to find one.
-        var user = await _client.Users[userId].GetAsync(cancellationToken: cancellationToken);
+        var user = await client.Users[userId].GetAsync(cancellationToken: cancellationToken);
 
         if (user is null)
         {
-            _logger.LogWarning("Token was valid but Clerk has no user {UserId}", userId);
+            Log.ClerkUserNotFound(logger, userId);
             return NotFound();
         }
 

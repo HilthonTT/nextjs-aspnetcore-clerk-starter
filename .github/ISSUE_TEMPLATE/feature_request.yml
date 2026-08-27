@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest something the template should include.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is a **starter template**, so the bar is: would most people starting a
+        Next.js + ASP.NET Core + Clerk project want this on day one? Anything more
+        specialised is better left for people to add themselves.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the friction you hit when starting a project from this template.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you add or change?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

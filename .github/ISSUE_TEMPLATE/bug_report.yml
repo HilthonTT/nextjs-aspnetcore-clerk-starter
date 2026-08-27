@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in the template does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check the **Troubleshooting** table in the README — most 401s are a
+        `Clerk:Authority` or `Clerk:AuthorizedParty` mismatch rather than a bug in the template.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the template?
+      options:
+        - Backend (ASP.NET Core API)
+        - Frontend (Next.js app)
+        - Both
+        - CI / tooling
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Clone the template at commit ...
+        2. Run `dotnet run` in Backend/ClerkAPI
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: API console output, browser console, or CI logs. Redact your Clerk keys.
+      render: shell
+
+  - type: input
+    id: dotnet
+    attributes:
+      label: .NET SDK version
+      description: Output of `dotnet --version`.
+      placeholder: "10.0.100"
+
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: Output of `node --version`.
+      placeholder: "v22.11.0"
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11 / macOS 15 / Ubuntu 24.04"

@@ -1,0 +1,24 @@
+# Normalise line endings so Windows and Unix contributors produce identical diffs.
+* text=auto eol=lf
+
+# Windows-only files keep CRLF.
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+*.sln  text eol=crlf
+
+# Never touch binaries.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.pdf  binary
+
+# Lockfiles are generated: collapse them in diffs and reviews.
+package-lock.json linguist-generated=true -diff
+
+# Keep language stats honest about what this template actually is.
+*.css linguist-detectable=true

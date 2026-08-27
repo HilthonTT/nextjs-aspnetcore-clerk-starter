@@ -8,6 +8,10 @@
 GET {{ClerkAPI_HostAddress}}/health
 Accept: application/json
 
+### OpenAPI document (development only) — the API reference UI lives at /scalar
+GET {{ClerkAPI_HostAddress}}/openapi/v1.json
+Accept: application/json
+
 ### Secured sample endpoint
 GET {{ClerkAPI_HostAddress}}/api/WeatherForecast
 Accept: application/json
@@ -17,5 +21,9 @@ Authorization: Bearer {{ClerkToken}}
 GET {{ClerkAPI_HostAddress}}/api/Users/me
 Accept: application/json
 Authorization: Bearer {{ClerkToken}}
+
+### Without a token — expect 401
+GET {{ClerkAPI_HostAddress}}/api/WeatherForecast
+Accept: application/json
 
 ###

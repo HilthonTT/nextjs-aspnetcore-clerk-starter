@@ -8,7 +8,7 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 2
 
-[*.{cs,csproj,sln,props,targets}]
+[*.{cs,csproj,props,targets}]
 indent_size = 4
 
 [*.sln]
@@ -24,3 +24,12 @@ csharp_style_namespace_declarations = file_scoped:suggestion
 csharp_style_var_when_type_is_apparent = true:suggestion
 dotnet_sort_system_directives_first = true
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
+
+# Analyzer rules. The backend builds with AnalysisLevel=latest-recommended and warnings as
+# errors (see Backend/Directory.Build.props), so anything turned off here is turned off
+# deliberately and with a reason.
+#
+# CA1859: suggests swapping IConfiguration for the concrete ConfigurationManager in private
+# helpers. The interface is the right contract here, and the "performance" gain is not
+# measurable at startup.
+dotnet_diagnostic.CA1859.severity = none

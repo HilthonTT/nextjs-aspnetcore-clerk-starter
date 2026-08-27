@@ -1,0 +1,4 @@
+# Test-project overrides.
+[*.cs]
+# CA1707: underscores are the idiomatic separator in xUnit test method names.
+dotnet_diagnostic.CA1707.severity = none

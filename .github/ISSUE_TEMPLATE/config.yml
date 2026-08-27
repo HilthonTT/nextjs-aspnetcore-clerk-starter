@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Clerk documentation
+    url: https://clerk.com/docs
+    about: Questions about Clerk itself — keys, JWT templates, session tokens.
+  - name: Clerk.Net (the .NET SDK this template uses)
+    url: https://github.com/Hawxy/Clerk.Net
+    about: Issues with the Clerk Backend API client.
+  - name: Next.js documentation
+    url: https://nextjs.org/docs
+    about: Questions about the App Router, server components, or the Next.js build.

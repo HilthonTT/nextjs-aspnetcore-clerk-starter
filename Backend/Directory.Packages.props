@@ -1,0 +1,38 @@
+<Project>
+
+  <!--
+    Central Package Management: every NuGet version lives here, and .csproj files reference
+    packages without a version. One place to bump, no chance of two projects disagreeing.
+    https://learn.microsoft.com/nuget/consume-packages/central-package-management
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Clerk">
+    <PackageVersion Include="Clerk.Net" Version="1.15.0" />
+    <PackageVersion Include="Clerk.Net.DependencyInjection" Version="1.15.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="ASP.NET Core">
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Transitive pins">
+    <!--
+      Clerk.Net's generated client pulls in Kiota. Pinned here to stay ahead of the version
+      it would otherwise resolve, which carries a known advisory (GHSA-7j59-v9qr-6fq9).
+      Drop these once Clerk.Net ships an update that already references a patched Kiota.
+    -->
+    <PackageVersion Include="Microsoft.Kiota.Abstractions" Version="1.22.2" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
+    <PackageVersion Include="xunit.v3" Version="4.0.0" />
+  </ItemGroup>
+
+</Project>

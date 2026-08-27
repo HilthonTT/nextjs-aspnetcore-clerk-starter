@@ -1,19 +1,29 @@
 using System.Security.Claims;
 using Clerk.Net.DependencyInjection;
+using ClerkAPI.Infrastructure;
+using ClerkAPI.OpenApi;
 using ClerkAPI.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 
 namespace ClerkAPI;
 
+/// <summary>
+/// Every service registration for the API, grouped one concern per method.
+/// </summary>
 public static class RegisterServices
 {
     public static void ConfigureServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddControllers();
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwagger();
+        builder.Services.AddHealthChecks();
+
+        // RFC 9457 problem details for framework-generated failures (401, 404, ...).
+        builder.Services.AddProblemDetails();
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        // Built-in OpenAPI document generation (no Swashbuckle needed since .NET 9).
+        builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
         builder.Services.AddClerkOptions(builder.Configuration);
         builder.Services.AddClerkAuthentication(builder.Configuration);
@@ -31,7 +41,7 @@ public static class RegisterServices
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        var clerk = configuration.GetSection(ClerkOptions.SectionName).Get<ClerkOptions>() ?? new ClerkOptions();
+        var clerk = configuration.ReadClerkOptions();
 
         services.AddClerkApiClient(config => config.SecretKey = clerk.SecretKey);
     }
@@ -41,7 +51,7 @@ public static class RegisterServices
     /// </summary>
     private static void AddClerkAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var clerk = configuration.GetSection(ClerkOptions.SectionName).Get<ClerkOptions>() ?? new ClerkOptions();
+        var clerk = configuration.ReadClerkOptions();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -74,6 +84,9 @@ public static class RegisterServices
         services.AddAuthorization();
     }
 
+    /// <summary>
+    /// CORS for browsers that call this API directly. Not used by the template's server-side calls.
+    /// </summary>
     private static void AddFrontendCors(this IServiceCollection services, IConfiguration configuration)
     {
         var cors = configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
@@ -92,36 +105,9 @@ public static class RegisterServices
     }
 
     /// <summary>
-    /// Adds Swagger with an "Authorize" button so you can paste a Clerk token and call secured endpoints.
+    /// Reads the Clerk section eagerly. Values are needed while building the container, before
+    /// the options validation registered above would run; that validation still fires at startup.
     /// </summary>
-    private static void AddSwagger(this IServiceCollection services)
-    {
-        services.AddSwaggerGen(options =>
-        {
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "Clerk API",
-                Version = "v1",
-                Description = "ASP.NET Core Web API secured with Clerk session tokens."
-            });
-
-            var scheme = new OpenApiSecurityScheme
-            {
-                Name = "Authorization",
-                Type = SecuritySchemeType.Http,
-                Scheme = "bearer",
-                BearerFormat = "JWT",
-                In = ParameterLocation.Header,
-                Description = "Paste a Clerk session token (without the \"Bearer \" prefix).",
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = JwtBearerDefaults.AuthenticationScheme
-                }
-            };
-
-            options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, scheme);
-            options.AddSecurityRequirement(new OpenApiSecurityRequirement { [scheme] = [] });
-        });
-    }
+    private static ClerkOptions ReadClerkOptions(this IConfiguration configuration) =>
+        configuration.GetSection(ClerkOptions.SectionName).Get<ClerkOptions>() ?? new ClerkOptions();
 }

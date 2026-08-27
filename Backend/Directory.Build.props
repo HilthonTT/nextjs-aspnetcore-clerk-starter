@@ -1,0 +1,38 @@
+<Project>
+
+  <!--
+    Settings shared by every project in the solution. Add a project and it inherits all of this,
+    so individual .csproj files stay short and cannot drift apart.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Keep the build honest: warnings fail CI, and .editorconfig style rules are enforced. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Undocumented public members are fine in a starter; the doc file is only for OpenAPI summaries. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!--
+      Audit every transitive package for known CVEs, but report them as warnings rather than errors:
+      a freshly published advisory should be loud, not something that breaks `dotnet run` on a
+      clone of this template before you have had a chance to bump the offending package.
+    -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Deterministic, reproducible builds. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>
