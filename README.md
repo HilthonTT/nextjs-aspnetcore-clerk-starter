@@ -17,7 +17,8 @@ and can look the user up through Clerk's Backend API.
 
 ## What you get
 
-- **Next.js 16** — App Router, React 19, TypeScript, Tailwind CSS v4, shadcn/ui components
+- **Next.js 16** — App Router, React 19, TypeScript, Tailwind CSS v4, shadcn/ui components,
+  dark mode, and a dashboard that streams one card per API endpoint
 - **ASP.NET Core 10** Web API — controllers, built-in OpenAPI with a [Scalar](https://scalar.com)
   API reference, health checks, and RFC 9457 problem details
 - **Clerk on both sides** — hosted sign-in/sign-up pages on the frontend, JWT bearer validation on
@@ -52,8 +53,10 @@ Auth on the .NET side is powered by [Hawxy's Clerk.Net](https://github.com/Hawxy
 └─ Frontend/
    └─ web/
       ├─ app/(auth)/              Clerk sign-in / sign-up
-      ├─ app/(main)/              Authenticated area
+      ├─ app/(main)/              Authenticated area: navbar shell + one card per endpoint
       ├─ app/globals.css          Tailwind v4 theme (there is no tailwind.config.ts)
+      ├─ components/ui/           shadcn/ui primitives
+      ├─ components/theme-*.tsx   Dark mode, via next-themes
       ├─ lib/api.ts               apiFetch — the only place that calls the API
       ├─ types/api.ts             Mirrors of the backend models
       └─ proxy.ts                 Clerk route protection
@@ -129,8 +132,9 @@ After clicking **Use this template**, these are the things worth changing first:
    `ClerkAPI` across `Backend/`.
 2. **Generate a fresh user-secrets id.** Delete `<UserSecretsId>` from `ClerkAPI.csproj` and run
    `dotnet user-secrets init`, so your secrets are not stored under the template's id.
-3. **Delete the sample endpoint.** `WeatherForecastController`, `Models/WeatherForecast.cs`, and
-   the matching type in `Frontend/web/types/api.ts` exist only to prove the wiring works.
+3. **Delete the sample endpoint.** `WeatherForecastController`, `Models/WeatherForecast.cs`, the
+   matching type in `Frontend/web/types/api.ts`, and `ForecastCard` exist only to prove the wiring
+   works.
 4. **Set your production origins.** `Clerk:AuthorizedParty` and, if a browser will ever call the
    API directly, `Cors:AllowedOrigins`.
 5. **Replace the metadata.** App title in `Frontend/web/app/layout.tsx`, the contact link in
@@ -220,7 +224,8 @@ and set `API_URL=https://localhost:7080`. `--use-system-ca` requires Node 22.15+
 2. Add the response model in `Backend/ClerkAPI/Models`.
 3. Add the new route to `AuthorizationTests` so the build fails if it is ever left unsecured.
 4. Mirror the model in `Frontend/web/types/api.ts`.
-5. Call it from a server component with `apiFetch<YourType>("/api/YourController")`.
+5. Call it from a server component with `apiFetch<YourType>("/api/YourController")`, and wrap that
+   component in its own `<Suspense fallback={<CardSkeleton />}>` so it streams independently.
 
 ## Updating dependencies
 

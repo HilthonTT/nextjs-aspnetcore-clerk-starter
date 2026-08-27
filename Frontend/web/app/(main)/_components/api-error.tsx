@@ -1,25 +1,45 @@
 import { TriangleAlert } from "lucide-react";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 interface ApiErrorProps {
+  title?: string;
   message: string;
 }
 
-export const ApiError = ({ message }: ApiErrorProps) => {
+export const ApiError = ({
+  title = "Could not reach the API",
+  message,
+}: ApiErrorProps) => {
   return (
-    <div className="w-full max-w-2xl rounded-2xl border border-destructive/50 bg-destructive/10 p-4">
-      <div className="flex items-center gap-x-2 font-semibold">
-        <TriangleAlert className="h-5 w-5" />
-        Could not reach the API
-      </div>
-      <p className="mt-2 text-sm text-muted-foreground">{message}</p>
-      <ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground space-y-1">
-        <li>Is the ASP.NET Core API running on the URL in `API_URL`?</li>
-        <li>
-          Does `Clerk:Authority` point at your Clerk instance, and
-          `Clerk:AuthorizedParty` at this app&apos;s base URL?
-        </li>
-        <li>Is `Clerk:SecretKey` set in user secrets or environment?</li>
-      </ul>
-    </div>
+    <Card className="border-destructive/40 bg-destructive/5">
+      <CardHeader>
+        <CardTitle className="text-destructive flex items-center gap-2">
+          <TriangleAlert className="size-4" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-muted-foreground font-mono text-xs break-all">
+          {message}
+        </p>
+        <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-sm">
+          <li>
+            Is the ASP.NET Core API running on the URL in{" "}
+            <code className="font-mono">API_URL</code>?
+          </li>
+          <li>
+            Does <code className="font-mono">Clerk:Authority</code> point at your
+            Clerk instance, and{" "}
+            <code className="font-mono">Clerk:AuthorizedParty</code> at this
+            app&apos;s base URL?
+          </li>
+          <li>
+            Is <code className="font-mono">Clerk:SecretKey</code> set in user
+            secrets or the environment?
+          </li>
+        </ul>
+      </CardContent>
+    </Card>
   );
 };

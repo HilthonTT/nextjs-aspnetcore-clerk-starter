@@ -1,32 +1,36 @@
-import { Server } from "lucide-react";
+import { Suspense } from "react";
 
-import { apiFetch } from "@/lib/api";
-import type { WeatherForecast } from "@/types/api";
-import { ApiCard } from "./_components/api-card";
-import { ApiError } from "./_components/api-error";
+import { Badge } from "@/components/ui/badge";
+import { CardSkeleton } from "./_components/card-skeleton";
+import { ForecastCard } from "./_components/forecast-card";
+import { ProfileCard } from "./_components/profile-card";
 
-// Every request hits the API with the caller's own token, so nothing here can be prerendered.
-export const dynamic = "force-dynamic";
-
-// The middleware already guarantees a signed-in user here.
-const MainPage = async () => {
-  let forecasts: WeatherForecast[] = [];
-  let error: string | null = null;
-
-  try {
-    forecasts = await apiFetch<WeatherForecast[]>("/api/WeatherForecast");
-  } catch (cause) {
-    console.error("[API_REQUEST_FAILED]", cause);
-    error = cause instanceof Error ? cause.message : "Unknown error";
-  }
-
+// The Clerk middleware in proxy.ts already guarantees a signed-in user here.
+const MainPage = () => {
   return (
-    <div className="flex flex-col items-center w-full h-full px-4 pt-24 pb-12">
-      <h1 className="my-4 text-xl font-semibold flex items-center gap-x-2">
-        <Server className="h-6 w-6" />
-        API calls to an ASP.NET Core API
-      </h1>
-      {error ? <ApiError message={error} /> : <ApiCard forecasts={forecasts} />}
+    <div className="space-y-8">
+      <section className="space-y-3">
+        <Badge variant="success">Signed in</Badge>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance">
+          Your Next.js app is talking to a Clerk-secured ASP.NET Core API
+        </h1>
+        <p className="text-muted-foreground max-w-2xl text-pretty">
+          Both cards below are React Server Components. Each one calls the API
+          from Node with your Clerk session token attached — the token and the
+          API URL never reach the browser.
+        </p>
+      </section>
+
+      {/* Each card streams in on its own, so one slow endpoint cannot block the other. */}
+      <div className="grid gap-6">
+        <Suspense fallback={<CardSkeleton rows={1} />}>
+          <ProfileCard />
+        </Suspense>
+
+        <Suspense fallback={<CardSkeleton rows={5} />}>
+          <ForecastCard />
+        </Suspense>
+      </div>
     </div>
   );
 };
