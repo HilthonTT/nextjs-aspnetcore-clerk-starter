@@ -18,7 +18,7 @@
   <ItemGroup Label="ASP.NET Core">
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.3" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.4" />
   </ItemGroup>
 
   <ItemGroup Label="Transitive pins">
