@@ -43,19 +43,31 @@ export const apiFetch = async <T>(
     throw new ApiError(401, path, "No Clerk session token available.");
   }
 
+  // Normalise first: spreading a Headers instance (or a [key, value][] array) into an
+  // object literal silently drops every header it carries.
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  headers.set("Accept", "application/json");
+
+  if (init.body !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${getApiUrl()}${path}`, {
-    ...init,
-    headers: {
-      ...init.headers,
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    // The demo endpoint returns fresh data on every request; drop this to opt into caching.
+    // The demo endpoints return fresh data on every request; pass `cache` or `next`
+    // in `init` to opt into caching.
     cache: "no-store",
+    ...init,
+    headers,
   });
 
   if (!response.ok) {
     throw new ApiError(response.status, path, await response.text());
+  }
+
+  // 204 No Content (and other empty bodies) cannot be parsed as JSON.
+  if (response.status === 204 || response.headers.get("Content-Length") === "0") {
+    return undefined as T;
   }
 
   return (await response.json()) as T;

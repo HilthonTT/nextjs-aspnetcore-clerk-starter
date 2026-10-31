@@ -4,7 +4,7 @@ using ClerkAPI.Infrastructure;
 using ClerkAPI.OpenApi;
 using ClerkAPI.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 
 namespace ClerkAPI;
 
@@ -13,6 +13,12 @@ namespace ClerkAPI;
 /// </summary>
 public static class RegisterServices
 {
+    /// <summary>
+    /// Clerk session tokens live for 60 seconds. The JWT handler's default 5-minute clock skew
+    /// would keep a token usable six times longer than Clerk intends; this matches Clerk's own SDKs.
+    /// </summary>
+    private static readonly TimeSpan ClerkClockSkew = TimeSpan.FromSeconds(5);
+
     public static void ConfigureServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddControllers();
@@ -26,7 +32,7 @@ public static class RegisterServices
         builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
         builder.Services.AddClerkOptions(builder.Configuration);
-        builder.Services.AddClerkAuthentication(builder.Configuration);
+        builder.Services.AddClerkAuthentication();
         builder.Services.AddFrontendCors(builder.Configuration);
     }
 
@@ -41,37 +47,43 @@ public static class RegisterServices
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        var clerk = configuration.ReadClerkOptions();
+        services.AddClerkApiClient(_ => { });
 
-        services.AddClerkApiClient(config => config.SecretKey = clerk.SecretKey);
+        // Resolved from the final configuration rather than read while services are being
+        // registered, so values added later (test hosts, secret stores) are honoured.
+        services.AddOptions<ClerkApiClientOptions>()
+            .Configure<IOptions<ClerkOptions>>((client, clerk) => client.SecretKey = clerk.Value.SecretKey);
     }
 
     /// <summary>
     /// Validates Clerk session tokens as JWT bearer tokens using Clerk's JWKS endpoint.
     /// </summary>
-    private static void AddClerkAuthentication(this IServiceCollection services, IConfiguration configuration)
+    private static void AddClerkAuthentication(this IServiceCollection services)
     {
-        var clerk = configuration.ReadClerkOptions();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<ClerkOptions>>((options, clerkOptions) =>
             {
+                var clerk = clerkOptions.Value;
+                var authorizedParty = clerk.AuthorizedParty.TrimEnd('/');
+
                 // The authority is the URL of your Clerk instance; keys are discovered from its JWKS.
                 options.Authority = clerk.Authority;
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    // Clerk session tokens carry no audience by default.
-                    ValidateAudience = false,
-                    NameClaimType = ClaimTypes.NameIdentifier
-                };
+
+                // Clerk session tokens carry no audience by default.
+                options.TokenValidationParameters.ValidateAudience = false;
+                options.TokenValidationParameters.NameClaimType = ClaimTypes.NameIdentifier;
+                options.TokenValidationParameters.ClockSkew = ClerkClockSkew;
+
                 options.Events = new JwtBearerEvents
                 {
                     // Reject tokens minted for a different frontend origin (the "azp" claim).
                     OnTokenValidated = context =>
                     {
-                        var azp = context.Principal?.FindFirstValue("azp");
+                        var azp = context.Principal?.FindFirstValue("azp")?.TrimEnd('/');
 
-                        if (string.IsNullOrEmpty(azp) || !azp.Equals(clerk.AuthorizedParty, StringComparison.Ordinal))
+                        if (string.IsNullOrEmpty(azp) || !azp.Equals(authorizedParty, StringComparison.OrdinalIgnoreCase))
                         {
                             context.Fail("AZP claim is invalid or missing.");
                         }
@@ -89,25 +101,23 @@ public static class RegisterServices
     /// </summary>
     private static void AddFrontendCors(this IServiceCollection services, IConfiguration configuration)
     {
-        var cors = configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
+        services.AddOptions<CorsOptions>().Bind(configuration.GetSection(CorsOptions.SectionName));
 
-        services.AddCors(options => options.AddPolicy(CorsOptions.PolicyName, policy =>
-        {
-            if (cors.AllowedOrigins.Length == 0)
-            {
-                return;
-            }
+        services.AddCors();
+        services.AddOptions<Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions>()
+            .Configure<IOptions<CorsOptions>>((options, corsOptions) =>
+                options.AddPolicy(CorsOptions.PolicyName, policy =>
+                {
+                    var origins = corsOptions.Value.AllowedOrigins;
 
-            policy.WithOrigins(cors.AllowedOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }));
+                    if (origins.Length == 0)
+                    {
+                        return;
+                    }
+
+                    policy.WithOrigins(origins)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }));
     }
-
-    /// <summary>
-    /// Reads the Clerk section eagerly. Values are needed while building the container, before
-    /// the options validation registered above would run; that validation still fires at startup.
-    /// </summary>
-    private static ClerkOptions ReadClerkOptions(this IConfiguration configuration) =>
-        configuration.GetSection(ClerkOptions.SectionName).Get<ClerkOptions>() ?? new ClerkOptions();
 }

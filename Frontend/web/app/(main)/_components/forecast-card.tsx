@@ -86,7 +86,11 @@ export const ForecastCard = async () => {
                     {forecast.temperatureF}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{forecast.summary}</Badge>
+                    {forecast.summary ? (
+                      <Badge variant="outline">{forecast.summary}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
