@@ -14,8 +14,9 @@ app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     // Document at /openapi/v1.json, interactive API reference at /scalar.
-    app.MapOpenApi();
-    app.MapScalarApiReference(options => options.WithTitle("Clerk API"));
+    // AllowAnonymous: the fallback authorization policy would otherwise lock these too.
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference(options => options.WithTitle("Clerk API")).AllowAnonymous();
 }
 else
 {

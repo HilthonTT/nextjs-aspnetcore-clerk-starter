@@ -6,7 +6,7 @@
 #   docker build -t clerkapi -f Backend/Dockerfile .
 
 # ---- build ----------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0-alpine AS build
 
 # Layout mirrors the repository so .editorconfig, global.json and the
 # Directory.*.props files all resolve exactly as they do on a developer machine.
@@ -29,7 +29,7 @@ RUN dotnet publish ClerkAPI/ClerkAPI.csproj \
     --output /app
 
 # ---- runtime --------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-alpine AS final
 WORKDIR /app
 
 # The .NET images define a non-root "app" user. Run as it rather than as root.

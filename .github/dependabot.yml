@@ -54,6 +54,9 @@ updates:
       # Take them deliberately, not on a weekly PR.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # @types/node tracks the Node major in Frontend/web/.nvmrc. Bump both together.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

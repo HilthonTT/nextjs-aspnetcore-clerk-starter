@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Lets Clerk's shadcn theme (see app/layout.tsx) use Tailwind classes. */
+@import "@clerk/themes/shadcn.css";
 
 /* Tailwind v4 is configured in CSS — there is no tailwind.config.ts any more. */
 @custom-variant dark (&:is(.dark *));

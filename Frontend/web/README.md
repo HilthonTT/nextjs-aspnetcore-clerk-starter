@@ -56,8 +56,9 @@ Colours are CSS variables in `app/globals.css`, defined once for light and again
 `next-themes` toggles that class on `<html>`; `ThemeToggle` in the navbar switches between
 light, dark, and system.
 
-Clerk's own components follow along through `components/clerk-theme-provider.tsx`, which passes
-`appearance.theme` based on the resolved theme. `@clerk/themes` also ships a `shadcn` theme that
-reads these CSS variables directly if you would rather not manage it explicitly.
+Clerk's own components follow along through the `shadcn` theme from `@clerk/themes`, set on
+`ClerkProvider` in `app/layout.tsx`. It reads these same CSS variables, so no client-side theme
+wiring is needed. Keep `ClerkProvider` in that server layout: imported from a client component it
+falls back to a client-only provider.
 
 Setup, environment variables and troubleshooting are documented in the [root README](../../README.md).

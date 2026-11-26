@@ -4,6 +4,7 @@ using ClerkAPI.Infrastructure;
 using ClerkAPI.OpenApi;
 using ClerkAPI.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
 namespace ClerkAPI;
@@ -93,7 +94,10 @@ public static class RegisterServices
                 };
             });
 
-        services.AddAuthorization();
+        // Secure by default: an endpoint with no [Authorize] still requires a signed-in user,
+        // so a new controller cannot go public by accident. Opt out with [AllowAnonymous].
+        services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
     }
 
     /// <summary>

@@ -39,4 +39,14 @@ public sealed class OpenApiDocumentTests(DevelopmentApiFactory factory) : IClass
         Assert.True(paths.TryGetProperty("/api/WeatherForecast", out _));
         Assert.True(paths.TryGetProperty("/api/Users/me", out _));
     }
+
+    [Fact]
+    public async Task Api_reference_is_exempt_from_the_fallback_authorization_policy()
+    {
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/scalar", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }

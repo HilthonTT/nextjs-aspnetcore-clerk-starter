@@ -65,10 +65,9 @@ export const apiFetch = async <T>(
     throw new ApiError(response.status, path, await response.text());
   }
 
-  // 204 No Content (and other empty bodies) cannot be parsed as JSON.
-  if (response.status === 204 || response.headers.get("Content-Length") === "0") {
-    return undefined as T;
-  }
+  // 204 No Content and other empty bodies cannot be parsed as JSON. Checking the text
+  // rather than Content-Length also covers empty chunked responses, which carry no length.
+  const text = await response.text();
 
-  return (await response.json()) as T;
+  return (text ? JSON.parse(text) : undefined) as T;
 };
